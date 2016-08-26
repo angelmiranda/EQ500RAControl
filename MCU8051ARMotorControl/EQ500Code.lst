@@ -1,0 +1,429 @@
+EQ500Code                                                                                                               PAGE 1
+                         1     ;====================================================================
+                         2     ; DEFINITIONS
+                         3     ;====================================================================
+                         4
+  0092                   5               ClkRevX1      equ P1.2
+  00B1                   6               ClkRevX8      equ P3.1
+  00B3                   7               ClkRevX32     equ P3.3
+  0093                   8               ClkFwdX1      equ P1.3
+  00B0                   9               ClkFwdX8      equ P3.0
+  00B2                  10               ClkFwdX32     equ P3.2
+  00B4                  11               RedLed        equ P3.4
+  003A                  12               Preset        equ 3ah
+  0040                  13               Step1         equ 40h
+  0041                  14               Step2         equ 41h
+  0042                  15               Step3         equ 42h
+  0043                  16               Step4         equ 43h
+  0044                  17               HStep1        equ 44h
+  0045                  18               HStep2        equ 45h
+  0046                  19               HStep3        equ 46h
+  0047                  20               HStep4        equ 47h
+                        21     ;====================================================================
+                        22     ; VARIABLES
+                        23     ;====================================================================
+                        24
+                        25     ;====================================================================
+                        26     ; RESET and INTERRUPT VECTORS
+                        27     ;====================================================================
+                        28
+                        29           ; Reset Vector
+                        30           org   0000h
+0000 020100             31           jmp   Start
+                        32
+                        33     ;====================================================================
+                        34     ; CODE SEGMENT
+                        35     ;====================================================================
+                        36
+                        37           org   0100h
+                        38     Start:
+                        39           ; Write your code here
+0100 758910             40               mov   TMOD, #10H                      ;Set up timer 1 as 16-bit interval timer
+0103 7540EF             41               mov   Step1, #11101111b               ;Set wave step for north pole
+0106 7541BF             42               mov   Step2, #10111111b
+0109 75427F             43               mov   Step3, #01111111b
+010C 7543DF             44               mov   Step4, #11011111b
+010F 75445F             45               mov   HStep1, #01011111b              ;Set full step for south pole
+0112 7545CF             46               mov   HStep2, #11001111b
+0115 7546AF             47               mov   HStep3, #10101111b
+0118 75473F             48               mov   HStep4, #00111111b
+011B 20B718             49               jb    P3.7, Loop                      ;If we go beyond here we are at the South Pole!
+011E 7540DF             50               mov   Step1, #11011111b               ;Set wave step for south pole
+0121 75417F             51               mov   Step2, #01111111b
+0124 7542BF             52               mov   Step3, #10111111b
+0127 7543EF             53               mov   Step4, #11101111b
+012A 75443F             54               mov   HStep1, #00111111b              ;Set full step for north pole
+012D 7545AF             55               mov   HStep2, #10101111b
+0130 7546CF             56               mov   HStep3, #11001111b
+0133 75475F             57               mov   HStep4, #01011111b
+                        58      Loop:                                          ;Start sidereal rate and loop it (we are following th
+0136 309269             59               jnb   ClkRevX1, RevX1                 ;First of all, check if any button is pressed
+0139 30B15A             60               jnb   ClkRevX8, RevX8tmp
+013C 30B35A             61               jnb   ClkRevX32, RevX32tmp
+013F 309369             62               jnb   ClkFwdX1, FwdX1
+0142 30B057             63               jnb   ClkFwdX8, FwdX8tmp
+0145 30B257             64               jnb   ClkFwdX32, FwdX32tmp
+0148 D2B4               65               setb  RedLed                          ;Enable the LED, as no button is pressed
+014A 854090             66               mov   P1, Step1                       ;Insert first step...
+014D 512F               67               acall Delay                           ;... and wait for the delay to gon on
+014F 309250             68               jnb   ClkRevX1, RevX1                 ;Same process for second step
+0152 30B141             69               jnb   ClkRevX8, RevX8tmp
+0155 30B341             70               jnb   ClkRevX32, RevX32tmp
+0158 309350             71               jnb   ClkFwdX1, FwdX1
+015B 30B03E             72               jnb   ClkFwdX8, FwdX8tmp
+015E 30B23E             73               jnb   ClkFwdX32, FwdX32tmp
+0161 854190             74               mov   P1, Step2
+0164 512F               75               acall Delay
+0166 309239             76               jnb   ClkRevX1, RevX1                 ;Same process for third step
+0169 30B12A             77               jnb   ClkRevX8, RevX8tmp
+016C 30B32A             78               jnb   ClkRevX32, RevX32tmp
+016F 309339             79               jnb   ClkFwdX1, FwdX1
+0172 30B027             80               jnb   ClkFwdX8, FwdX8tmp
+0175 30B227             81               jnb   ClkFwdX32, FwdX32tmp
+0178 854290             82               mov   P1, Step3
+017B 512F               83               acall Delay                           ;Same process for fourth step
+017D 309222             84               jnb   ClkRevX1, RevX1
+0180 30B113             85               jnb   ClkRevX8, RevX8tmp
+0183 30B313             86               jnb   ClkRevX32, RevX32tmp
+0186 309322             87               jnb   ClkFwdX1, FwdX1
+0189 30B010             88               jnb   ClkFwdX8, FwdX8tmp
+018C 30B210             89               jnb   ClkFwdX32, FwdX32tmp
+018F 854390             90               mov   P1, Step4
+0192 512F               91               acall Delay
+0194 80A0               92               jmp   Loop
+                        93
+0196 0201CF             94     RevX8tmp:       jmp RevX8                       ;As jnb is a short jump, we add a intermediate step
+0199 0201FF             95     RevX32tmp:      jmp RevX32
+019C 0201E7             96     FwdX8tmp:       jmp FwdX8
+019F 020217             97     FwdX32tmp:      jmp FwdX32
+                        98
+                        99     RevX1:
+01A2 5165              100               acall Delayx32                        ;Insert a few delay to avoid button bounce
+01A4 C2B4              101               clr   RedLed                          ;Clear LED and...
+01A6 7590FF            102               mov   P1, #11111111b                  ;Stop motor (reversal at x1 speed plus forward at sid
+01A9 808B              103               jmp   Loop
+                       104     FwdX1:
+01AB C2B4              105               clr   RedLed                          ;First clear LED, then start the movement sequence
+01AD 5141              106               acall Delayx2                         ;For every step, ensure that we keep pressing button
+01AF 20931B            107               jb    ClkFwdX1, Skip
+01B2 854490            108               mov   P1, HStep1
+01B5 5141              109               acall Delayx2                         ;Same for second step
+01B7 209313            110               jb    ClkFwdX1, Skip
+01BA 854590            111               mov   P1, HStep2
+01BD 5141              112               acall Delayx2                         ;Same for third step
+01BF 20930B            113               jb    ClkFwdX1, Skip
+01C2 854690            114               mov   P1, HStep3
+01C5 5141              115               acall Delayx2                         ;Same for fourth step
+01C7 209303            116               jb    ClkFwdX1, Skip
+01CA 854790            117               mov   P1, HStep4
+                       118     Skip:
+****WARNING:Reservedkeywordusedaslabel
+01CD 2100              119               jmp   Start
+                       120     RevX8:
+01CF C2B4              121               clr   RedLed                          ;First clear LED, then start the movement sequence
+01D1 5153              122               acall Delayx8
+01D3 854790            123               mov   P1, HStep4
+01D6 5153              124               acall Delayx8
+01D8 854690            125               mov   P1, HStep3
+01DB 5153              126               acall Delayx8
+01DD 854590            127               mov   P1, HStep2
+01E0 5153              128               acall Delayx8
+01E2 854490            129               mov   P1, HStep1
+01E5 2100              130               jmp   Start
+                       131     FwdX8:
+01E7 C2B4              132               clr   RedLed                          ;First clear LED, then start the movement sequence
+01E9 5153              133               acall Delayx8
+01EB 854490            134               mov   P1, HStep1
+01EE 5153              135               acall Delayx8
+01F0 854590            136               mov   P1, HStep2
+01F3 5153              137               acall Delayx8
+01F5 854690            138               mov   P1, HStep3
+01F8 5153              139               acall Delayx8
+01FA 854790            140               mov   P1, HStep4
+01FD 2100              141               jmp   Start
+                       142     RevX32:
+01FF C2B4              143               clr   RedLed                          ;First clear LED, then start the movement sequence
+0201 5165              144               acall Delayx32
+0203 854790            145               mov   P1, HStep4
+0206 5165              146               acall Delayx32
+0208 854690            147               mov   P1, HStep3
+020B 5165              148               acall Delayx32
+020D 854590            149               mov   P1, HStep2
+0210 5165              150               acall Delayx32
+0212 854490            151               mov   P1, HStep1
+0215 2100              152               jmp   Start
+                       153     FwdX32:
+0217 C2B4              154               clr   RedLed                          ;First clear LED, then start the movement sequence
+0219 5165              155               acall Delayx32
+021B 854490            156               mov   P1, HStep1
+021E 5165              157               acall Delayx32
+0220 854590            158               mov   P1, HStep2
+0223 5165              159               acall Delayx32
+0225 854690            160               mov   P1, HStep3
+0228 5165              161               acall Delayx32
+022A 854790            162               mov   P1, HStep4
+022D 2100              163               jmp   Start
+                       164
+                       165     ;Delay section, for each speed
+                       166     Delay:
+022F C28E              167               clr   TR1                             ;Stop timer 1 (in case it was started in some other s
+0231 758D86            168               mov   TH1, #86H
+0234 758BF5            169               mov   TL1, #0F5H                      ;Load 34.518 (86D6h) into timer 1, to reach 103.98ms
+0237 D28E              170               setb  TR1                             ;Start timer 1
+0239 308FFD            171               jnb   TF1, $                          ;Repeat this line while timer 1 overflow flag is not
+023C C28F              172               clr   TF1                             ;Timer 1 overflow flag is set by hardware on transiti
+023E C28E              173               clr   TR1                             ;Stop timer 1
+0240 22                174               ret
+                       175
+                       176     Delayx2:
+0241 C28E              177               clr   TR1                             ;Stop timer 1 (in case it was started in some other s
+0243 758DC3            178               mov   TH1, #0C3H
+0246 758B98            179               mov   TL1, #098H                      ;Load 50.027 (C398h) into timer 1, to reach about 51m
+0249 D28E              180               setb  TR1                             ;Start timer 1
+024B 308FFD            181               jnb   TF1, $                          ;Repeat this line while timer 1 overflow flag is not
+024E C28F              182               clr   TF1                             ;Timer 1 overflow flag is set by hardware on transiti
+0250 C28E              183               clr   TR1                             ;Stop timer 1
+0252 22                184               ret
+                       185
+                       186     Delayx8:
+0253 C28E              187               clr   TR1                             ;Stop timer 1 (in case it was started in some other s
+0255 758DF0            188               mov   TH1, #0F0H
+0258 758BDA            189               mov   TL1, #0DAH                      ;Set Delay for x8 speed
+025B D28E              190               setb  TR1                             ;Start timer 1
+025D 308FFD            191               jnb   TF1, $                          ;Repeat this line while timer 1 overflow flag is not
+0260 C28F              192               clr   TF1                             ;Timer 1 overflow flag is set by hardware on transiti
+0262 C28E              193               clr   TR1                             ;Stop timer 1
+0264 22                194               ret
+                       195
+                       196     Delayx32:
+0265 C28E              197               clr   TR1                             ;Stop timer 1 (in case it was started in some other s
+0267 758DFC            198               mov   TH1, #0FCH
+026A 758B36            199               mov   TL1, #036H                      ;Set Delay for x32
+026D D28E              200               setb  TR1                             ;Start timer 1
+026F 308FFD            201               jnb   TF1, $                          ;Repeat this line while timer 1 overflow flag is not
+0272 C28F              202               clr   TF1                             ;Timer 1 overflow flag is set by hardware on transiti
+0274 C28E              203               clr   TR1                             ;Stop timer 1
+0276 22                204               ret
+                       205
+                       206     ;====================================================================
+                       207           END
+ASSEMBLY COMPLETE, NO ERRORS FOUND, 1 WARNING
+
+
+ERROR SUMMARY:
+Line 118, WARNING:Reservedkeywordusedaslabel
+
+SYMBOL TABLE:
+??MCU_8051_IDE . . . . . . . . . . .  N  NUMB  8051H  NOT USED
+??VERSION. . . . . . . . . . . . . .  N  NUMB  014AH  NOT USED
+AC . . . . . . . . . . . . . . . . .  B  ADDR  00D6H  NOT USED
+ACC. . . . . . . . . . . . . . . . .  D  ADDR  00E0H  NOT USED
+ACSR . . . . . . . . . . . . . . . .  D  ADDR  0097H  NOT USED
+ADCF . . . . . . . . . . . . . . . .  D  ADDR  00F6H  NOT USED
+ADCLK. . . . . . . . . . . . . . . .  D  ADDR  00F2H  NOT USED
+ADCON. . . . . . . . . . . . . . . .  D  ADDR  00F3H  NOT USED
+ADDH . . . . . . . . . . . . . . . .  D  ADDR  00F5H  NOT USED
+ADDL . . . . . . . . . . . . . . . .  D  ADDR  00F4H  NOT USED
+AUXR . . . . . . . . . . . . . . . .  D  ADDR  008EH  NOT USED
+AUXR1. . . . . . . . . . . . . . . .  D  ADDR  00A2H  NOT USED
+B. . . . . . . . . . . . . . . . . .  D  ADDR  00F0H  NOT USED
+BDRCON . . . . . . . . . . . . . . .  D  ADDR  009BH  NOT USED
+BDRCON_1 . . . . . . . . . . . . . .  D  ADDR  009CH  NOT USED
+BRL. . . . . . . . . . . . . . . . .  D  ADDR  009AH  NOT USED
+CCAP0H . . . . . . . . . . . . . . .  D  ADDR  00FAH  NOT USED
+CCAP0L . . . . . . . . . . . . . . .  D  ADDR  00EAH  NOT USED
+CCAP1H . . . . . . . . . . . . . . .  D  ADDR  00FBH  NOT USED
+CCAP1L . . . . . . . . . . . . . . .  D  ADDR  00EBH  NOT USED
+CCAP2H . . . . . . . . . . . . . . .  D  ADDR  00FCH  NOT USED
+CCAP3H . . . . . . . . . . . . . . .  D  ADDR  00FDH  NOT USED
+CCAP4H . . . . . . . . . . . . . . .  D  ADDR  00FEH  NOT USED
+CCAPL2H. . . . . . . . . . . . . . .  D  ADDR  00FCH  NOT USED
+CCAPL2L. . . . . . . . . . . . . . .  D  ADDR  00ECH  NOT USED
+CCAPL3H. . . . . . . . . . . . . . .  D  ADDR  00FDH  NOT USED
+CCAPL3L. . . . . . . . . . . . . . .  D  ADDR  00EDH  NOT USED
+CCAPL4H. . . . . . . . . . . . . . .  D  ADDR  00FEH  NOT USED
+CCAPL4L. . . . . . . . . . . . . . .  D  ADDR  00EEH  NOT USED
+CCAPM0 . . . . . . . . . . . . . . .  D  ADDR  00DAH  NOT USED
+CCAPM1 . . . . . . . . . . . . . . .  D  ADDR  00DBH  NOT USED
+CCAPM2 . . . . . . . . . . . . . . .  D  ADDR  00DCH  NOT USED
+CCAPM3 . . . . . . . . . . . . . . .  D  ADDR  00DDH  NOT USED
+CCAPM4 . . . . . . . . . . . . . . .  D  ADDR  00DEH  NOT USED
+CCF0 . . . . . . . . . . . . . . . .  B  ADDR  00D8H  NOT USED
+CCF1 . . . . . . . . . . . . . . . .  B  ADDR  00D9H  NOT USED
+CCF2 . . . . . . . . . . . . . . . .  B  ADDR  00DAH  NOT USED
+CCF3 . . . . . . . . . . . . . . . .  B  ADDR  00DBH  NOT USED
+CCF4 . . . . . . . . . . . . . . . .  B  ADDR  00DCH  NOT USED
+CCON . . . . . . . . . . . . . . . .  D  ADDR  00D8H  NOT USED
+CFINT. . . . . . . . . . . . . . . .  C  ADDR  0033H  NOT USED
+CH . . . . . . . . . . . . . . . . .  D  ADDR  00F9H  NOT USED
+CKCON. . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CKCON0 . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CKRL . . . . . . . . . . . . . . . .  D  ADDR  0097H  NOT USED
+CKSEL. . . . . . . . . . . . . . . .  D  ADDR  0085H  NOT USED
+CL . . . . . . . . . . . . . . . . .  D  ADDR  00E9H  NOT USED
+CLKFWDX1 . . . . . . . . . . . . . .  N  NUMB  0093H
+CLKFWDX32. . . . . . . . . . . . . .  N  NUMB  00B2H
+CLKFWDX8 . . . . . . . . . . . . . .  N  NUMB  00B0H
+CLKREG . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CLKREVX1 . . . . . . . . . . . . . .  N  NUMB  0092H
+CLKREVX32. . . . . . . . . . . . . .  N  NUMB  00B3H
+CLKREVX8 . . . . . . . . . . . . . .  N  NUMB  00B1H
+CMOD . . . . . . . . . . . . . . . .  D  ADDR  00D9H  NOT USED
+CPRL2. . . . . . . . . . . . . . . .  B  ADDR  00C8H  NOT USED
+CR . . . . . . . . . . . . . . . . .  B  ADDR  00DEH  NOT USED
+CT2. . . . . . . . . . . . . . . . .  B  ADDR  00C9H  NOT USED
+CY . . . . . . . . . . . . . . . . .  B  ADDR  00D7H  NOT USED
+DELAY. . . . . . . . . . . . . . . .  C  ADDR  022FH
+DELAYX2. . . . . . . . . . . . . . .  C  ADDR  0241H
+DELAYX32 . . . . . . . . . . . . . .  C  ADDR  0265H
+DELAYX8. . . . . . . . . . . . . . .  C  ADDR  0253H
+DP0H . . . . . . . . . . . . . . . .  D  ADDR  0083H  NOT USED
+DP0L . . . . . . . . . . . . . . . .  D  ADDR  0082H  NOT USED
+DP1H . . . . . . . . . . . . . . . .  D  ADDR  0085H  NOT USED
+DP1L . . . . . . . . . . . . . . . .  D  ADDR  0084H  NOT USED
+DPH. . . . . . . . . . . . . . . . .  D  ADDR  0083H  NOT USED
+DPL. . . . . . . . . . . . . . . . .  D  ADDR  0082H  NOT USED
+EA . . . . . . . . . . . . . . . . .  B  ADDR  00AFH  NOT USED
+EC . . . . . . . . . . . . . . . . .  B  ADDR  00AEH  NOT USED
+EECON. . . . . . . . . . . . . . . .  D  ADDR  0096H  NOT USED
+ES . . . . . . . . . . . . . . . . .  B  ADDR  00ACH  NOT USED
+ET0. . . . . . . . . . . . . . . . .  B  ADDR  00A9H  NOT USED
+ET1. . . . . . . . . . . . . . . . .  B  ADDR  00ABH  NOT USED
+ET2. . . . . . . . . . . . . . . . .  B  ADDR  00ADH  NOT USED
+EX0. . . . . . . . . . . . . . . . .  B  ADDR  00A8H  NOT USED
+EX1. . . . . . . . . . . . . . . . .  B  ADDR  00AAH  NOT USED
+EXEN2. . . . . . . . . . . . . . . .  B  ADDR  00CBH  NOT USED
+EXF2 . . . . . . . . . . . . . . . .  B  ADDR  00CEH  NOT USED
+EXTI0. . . . . . . . . . . . . . . .  C  ADDR  0003H  NOT USED
+EXTI1. . . . . . . . . . . . . . . .  C  ADDR  0013H  NOT USED
+F0 . . . . . . . . . . . . . . . . .  B  ADDR  00D5H  NOT USED
+FE . . . . . . . . . . . . . . . . .  B  ADDR  009FH  NOT USED
+FWDX1. . . . . . . . . . . . . . . .  C  ADDR  01ABH
+FWDX32 . . . . . . . . . . . . . . .  C  ADDR  0217H
+FWDX32TMP. . . . . . . . . . . . . .  C  ADDR  019FH
+FWDX8. . . . . . . . . . . . . . . .  C  ADDR  01E7H
+FWDX8TMP . . . . . . . . . . . . . .  C  ADDR  019CH
+HSTEP1 . . . . . . . . . . . . . . .  N  NUMB  0044H
+HSTEP2 . . . . . . . . . . . . . . .  N  NUMB  0045H
+HSTEP3 . . . . . . . . . . . . . . .  N  NUMB  0046H
+HSTEP4 . . . . . . . . . . . . . . .  N  NUMB  0047H
+IE . . . . . . . . . . . . . . . . .  D  ADDR  00A8H  NOT USED
+IE0. . . . . . . . . . . . . . . . .  B  ADDR  0089H  NOT USED
+IE1. . . . . . . . . . . . . . . . .  B  ADDR  008BH  NOT USED
+INT0 . . . . . . . . . . . . . . . .  B  ADDR  00B2H  NOT USED
+INT1 . . . . . . . . . . . . . . . .  B  ADDR  00B3H  NOT USED
+IP . . . . . . . . . . . . . . . . .  D  ADDR  00B8H  NOT USED
+IPH. . . . . . . . . . . . . . . . .  D  ADDR  00B7H  NOT USED
+IPH0 . . . . . . . . . . . . . . . .  D  ADDR  00B7H  NOT USED
+IPH1 . . . . . . . . . . . . . . . .  D  ADDR  00B3H  NOT USED
+IPL0 . . . . . . . . . . . . . . . .  D  ADDR  00B8H  NOT USED
+IPL1 . . . . . . . . . . . . . . . .  D  ADDR  00B2H  NOT USED
+IT0. . . . . . . . . . . . . . . . .  B  ADDR  0088H  NOT USED
+IT1. . . . . . . . . . . . . . . . .  B  ADDR  008AH  NOT USED
+KBE. . . . . . . . . . . . . . . . .  D  ADDR  009DH  NOT USED
+KBF. . . . . . . . . . . . . . . . .  D  ADDR  009EH  NOT USED
+KBLS . . . . . . . . . . . . . . . .  D  ADDR  009CH  NOT USED
+LOOP . . . . . . . . . . . . . . . .  C  ADDR  0136H
+OSCCON . . . . . . . . . . . . . . .  D  ADDR  0086H  NOT USED
+OV . . . . . . . . . . . . . . . . .  B  ADDR  00D2H  NOT USED
+P. . . . . . . . . . . . . . . . . .  B  ADDR  00D0H  NOT USED
+P0 . . . . . . . . . . . . . . . . .  D  ADDR  0080H  NOT USED
+P1 . . . . . . . . . . . . . . . . .  D  ADDR  0090H
+P1M1 . . . . . . . . . . . . . . . .  D  ADDR  00D4H  NOT USED
+P1M2 . . . . . . . . . . . . . . . .  D  ADDR  00E2H  NOT USED
+P2 . . . . . . . . . . . . . . . . .  D  ADDR  00A0H  NOT USED
+P3 . . . . . . . . . . . . . . . . .  D  ADDR  00B0H
+P3M1 . . . . . . . . . . . . . . . .  D  ADDR  00D5H  NOT USED
+P3M2 . . . . . . . . . . . . . . . .  D  ADDR  00E3H  NOT USED
+P4 . . . . . . . . . . . . . . . . .  D  ADDR  00C0H  NOT USED
+P4M1 . . . . . . . . . . . . . . . .  D  ADDR  00D6H  NOT USED
+P4M2 . . . . . . . . . . . . . . . .  D  ADDR  00E4H  NOT USED
+P5 . . . . . . . . . . . . . . . . .  D  ADDR  00E8H  NOT USED
+PC . . . . . . . . . . . . . . . . .  B  ADDR  00BEH  NOT USED
+PCON . . . . . . . . . . . . . . . .  D  ADDR  0087H  NOT USED
+PPCL . . . . . . . . . . . . . . . .  B  ADDR  00BEH  NOT USED
+PRESET . . . . . . . . . . . . . . .  N  NUMB  003AH  NOT USED
+PS . . . . . . . . . . . . . . . . .  B  ADDR  00BCH  NOT USED
+PSL. . . . . . . . . . . . . . . . .  B  ADDR  00BCH  NOT USED
+PSW. . . . . . . . . . . . . . . . .  D  ADDR  00D0H  NOT USED
+PT0. . . . . . . . . . . . . . . . .  B  ADDR  00B9H  NOT USED
+PT0L . . . . . . . . . . . . . . . .  B  ADDR  00B9H  NOT USED
+PT1. . . . . . . . . . . . . . . . .  B  ADDR  00BBH  NOT USED
+PT1L . . . . . . . . . . . . . . . .  B  ADDR  00BBH  NOT USED
+PT2. . . . . . . . . . . . . . . . .  B  ADDR  00BDH  NOT USED
+PT2L . . . . . . . . . . . . . . . .  B  ADDR  00BDH  NOT USED
+PX0. . . . . . . . . . . . . . . . .  B  ADDR  00B8H  NOT USED
+PX0L . . . . . . . . . . . . . . . .  B  ADDR  00B8H  NOT USED
+PX1. . . . . . . . . . . . . . . . .  B  ADDR  00BAH  NOT USED
+PX1L . . . . . . . . . . . . . . . .  B  ADDR  00BAH  NOT USED
+RB8. . . . . . . . . . . . . . . . .  B  ADDR  009AH  NOT USED
+RCAP2H . . . . . . . . . . . . . . .  D  ADDR  00CBH  NOT USED
+RCAP2L . . . . . . . . . . . . . . .  D  ADDR  00CAH  NOT USED
+RCLK . . . . . . . . . . . . . . . .  B  ADDR  00CDH  NOT USED
+RD . . . . . . . . . . . . . . . . .  B  ADDR  00B7H  NOT USED
+REDLED . . . . . . . . . . . . . . .  N  NUMB  00B4H
+REN. . . . . . . . . . . . . . . . .  B  ADDR  009CH  NOT USED
+RESET. . . . . . . . . . . . . . . .  C  ADDR  0000H  NOT USED
+REVX1. . . . . . . . . . . . . . . .  C  ADDR  01A2H
+REVX32 . . . . . . . . . . . . . . .  C  ADDR  01FFH
+REVX32TMP. . . . . . . . . . . . . .  C  ADDR  0199H
+REVX8. . . . . . . . . . . . . . . .  C  ADDR  01CFH
+REVX8TMP . . . . . . . . . . . . . .  C  ADDR  0196H
+RI . . . . . . . . . . . . . . . . .  B  ADDR  0098H  NOT USED
+RS0. . . . . . . . . . . . . . . . .  B  ADDR  00D3H  NOT USED
+RS1. . . . . . . . . . . . . . . . .  B  ADDR  00D4H  NOT USED
+RXD. . . . . . . . . . . . . . . . .  B  ADDR  00B0H  NOT USED
+SADDR. . . . . . . . . . . . . . . .  D  ADDR  00A9H  NOT USED
+SADDR_0. . . . . . . . . . . . . . .  D  ADDR  00A9H  NOT USED
+SADDR_1. . . . . . . . . . . . . . .  D  ADDR  00AAH  NOT USED
+SADEN. . . . . . . . . . . . . . . .  D  ADDR  00B9H  NOT USED
+SADEN_0. . . . . . . . . . . . . . .  D  ADDR  00B9H  NOT USED
+SADEN_1. . . . . . . . . . . . . . .  D  ADDR  00BAH  NOT USED
+SBUF . . . . . . . . . . . . . . . .  D  ADDR  0099H  NOT USED
+SCON . . . . . . . . . . . . . . . .  D  ADDR  0098H  NOT USED
+SINT . . . . . . . . . . . . . . . .  C  ADDR  0023H  NOT USED
+SKIP . . . . . . . . . . . . . . . .  C  ADDR  01CDH
+SM0. . . . . . . . . . . . . . . . .  B  ADDR  009FH  NOT USED
+SM1. . . . . . . . . . . . . . . . .  B  ADDR  009EH  NOT USED
+SM2. . . . . . . . . . . . . . . . .  B  ADDR  009DH  NOT USED
+SP . . . . . . . . . . . . . . . . .  D  ADDR  0081H  NOT USED
+SPCON. . . . . . . . . . . . . . . .  D  ADDR  00C3H  NOT USED
+SPCR . . . . . . . . . . . . . . . .  D  ADDR  00D5H  NOT USED
+SPDAT. . . . . . . . . . . . . . . .  D  ADDR  00C5H  NOT USED
+SPDR . . . . . . . . . . . . . . . .  D  ADDR  0086H  NOT USED
+SPSR . . . . . . . . . . . . . . . .  D  ADDR  00AAH  NOT USED
+SPSTA. . . . . . . . . . . . . . . .  D  ADDR  00C4H  NOT USED
+START. . . . . . . . . . . . . . . .  C  ADDR  0100H
+STEP1. . . . . . . . . . . . . . . .  N  NUMB  0040H
+STEP2. . . . . . . . . . . . . . . .  N  NUMB  0041H
+STEP3. . . . . . . . . . . . . . . .  N  NUMB  0042H
+STEP4. . . . . . . . . . . . . . . .  N  NUMB  0043H
+T0 . . . . . . . . . . . . . . . . .  B  ADDR  00B4H  NOT USED
+T1 . . . . . . . . . . . . . . . . .  B  ADDR  00B5H  NOT USED
+T2CON. . . . . . . . . . . . . . . .  D  ADDR  00C8H  NOT USED
+T2MOD. . . . . . . . . . . . . . . .  D  ADDR  00C9H  NOT USED
+TB8. . . . . . . . . . . . . . . . .  B  ADDR  009BH  NOT USED
+TCLK . . . . . . . . . . . . . . . .  B  ADDR  00CCH  NOT USED
+TCON . . . . . . . . . . . . . . . .  D  ADDR  0088H  NOT USED
+TF0. . . . . . . . . . . . . . . . .  B  ADDR  008DH  NOT USED
+TF1. . . . . . . . . . . . . . . . .  B  ADDR  008FH
+TF2. . . . . . . . . . . . . . . . .  B  ADDR  00CFH  NOT USED
+TH0. . . . . . . . . . . . . . . . .  D  ADDR  008CH  NOT USED
+TH1. . . . . . . . . . . . . . . . .  D  ADDR  008DH
+TH2. . . . . . . . . . . . . . . . .  D  ADDR  00CDH  NOT USED
+TI . . . . . . . . . . . . . . . . .  B  ADDR  0099H  NOT USED
+TIMER0 . . . . . . . . . . . . . . .  C  ADDR  000BH  NOT USED
+TIMER1 . . . . . . . . . . . . . . .  C  ADDR  001BH  NOT USED
+TIMER2 . . . . . . . . . . . . . . .  C  ADDR  002BH  NOT USED
+TL0. . . . . . . . . . . . . . . . .  D  ADDR  008AH  NOT USED
+TL1. . . . . . . . . . . . . . . . .  D  ADDR  008BH
+TL2. . . . . . . . . . . . . . . . .  D  ADDR  00CCH  NOT USED
+TMOD . . . . . . . . . . . . . . . .  D  ADDR  0089H
+TR0. . . . . . . . . . . . . . . . .  B  ADDR  008CH  NOT USED
+TR1. . . . . . . . . . . . . . . . .  B  ADDR  008EH
+TR2. . . . . . . . . . . . . . . . .  B  ADDR  00CAH  NOT USED
+TXD. . . . . . . . . . . . . . . . .  B  ADDR  00B1H  NOT USED
+WDTCON . . . . . . . . . . . . . . .  D  ADDR  00A7H  NOT USED
+WDTPRG . . . . . . . . . . . . . . .  D  ADDR  00A7H  NOT USED
+WDTRST . . . . . . . . . . . . . . .  D  ADDR  00A6H  NOT USED
+WR . . . . . . . . . . . . . . . . .  B  ADDR  00B6H  NOT USED
